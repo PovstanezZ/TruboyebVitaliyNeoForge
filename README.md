@@ -4,7 +4,7 @@
 
 ## 📥 Скачать
 
-[![Скачать последнюю версию](https://img.shields.io/badge/Download-Latest-blue?style=for-the-badge&logo=github)](https://github.com/ТВОЙ_НИК/ТВОЙ_РЕПОЗИТОРИЙ/releases/latest/download/truboyob_vitaliy-1.0.1.jar)
+[![Скачать последнюю версию](https://img.shields.io/badge/Download-Latest-blue?style=for-the-badge&logo=github)](https://github.com/PovstanezZ/TruboyebVitaliyNeoForge/releases/latest/download/ModRelease/truboyob_vitaliy_neoforge-1.0.1.jar)
 
 > Ссылка всегда ведёт на файл из **последнего** релиза.
 
