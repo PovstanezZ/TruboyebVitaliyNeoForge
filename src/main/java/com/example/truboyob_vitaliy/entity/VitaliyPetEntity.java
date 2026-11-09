@@ -58,7 +58,6 @@ public class VitaliyPetEntity extends TamableAnimal {
         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
         this.goalSelector.addGoal(3, new TemptGoal(this, 1.25D,
                 Ingredient.of(Items.IRON_INGOT), false));
-        // ✅ В 1.21.1 конструктор без boolean
         this.goalSelector.addGoal(4, new FollowOwnerGoal(this, 1.0D, 10.0F, 2.0F));
         this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 1.0D));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F, 1.0F));
@@ -67,33 +66,57 @@ public class VitaliyPetEntity extends TamableAnimal {
 
     @Override
     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+        // На клиенте просто возвращаем SUCCESS, чтобы не было рассинхрона анимации
         if (this.level().isClientSide) {
             return InteractionResult.SUCCESS;
         }
 
         ItemStack itemInHand = player.getItemInHand(hand);
 
-        if (!this.isTame() && this.isFood(itemInHand)) {
-            itemInHand.shrink(1);
-            if (this.random.nextInt(3) == 0) {
-                this.tame(player);
-                this.setCustomSitting(true);
-                this.level().broadcastEntityEvent(this, (byte) 7);
-            } else {
-                this.level().broadcastEntityEvent(this, (byte) 6);
-            }
-            return InteractionResult.SUCCESS;
-        }
-
+        // ============================================================
+        // 1) SHIFT + ПКМ → открыть GUI (независимо от предмета в руке)
+        // ============================================================
         if (this.isTame() && player.isShiftKeyDown()) {
             if (player instanceof ServerPlayer serverPlayer) {
-                // ✅ В NeoForge 1.21.1 используем ванильный openMenu с MenuProvider
                 serverPlayer.openMenu(this.getMenuProvider(), buf -> buf.writeVarInt(this.getId()));
             }
             return InteractionResult.SUCCESS;
         }
 
-        if (this.isTame() && itemInHand.isEmpty() && !player.isShiftKeyDown()) {
+        // ============================================================
+        // 2) ПКМ с едой в руке → приручение / лечение
+        // ============================================================
+        if (this.isFood(itemInHand)) {
+
+            // 2.1) Ещё не приручён — попытка приручения
+            if (!this.isTame()) {
+                itemInHand.shrink(1);
+                if (this.random.nextInt(3) == 0) {
+                    this.tame(player);
+                    this.setCustomSitting(true);
+                    this.level().broadcastEntityEvent(this, (byte) 7); // сердечки
+                } else {
+                    this.level().broadcastEntityEvent(this, (byte) 6); // дым
+                }
+                return InteractionResult.SUCCESS;
+            }
+
+            // 2.2) Уже приручён, но сыт — ничего не делаем (не тратим еду)
+            if (this.getHealth() >= this.getMaxHealth()) {
+                return InteractionResult.PASS;
+            }
+
+            // 2.3) Уже приручён и ранен — лечим
+            this.heal(4.0F); // 2 сердца
+            itemInHand.shrink(1);
+            this.level().broadcastEntityEvent(this, (byte) 7); // сердечки
+            return InteractionResult.SUCCESS;
+        }
+
+        // ============================================================
+        // 3) ПКМ пустой рукой (без Shift) → посадить / поднять
+        // ============================================================
+        if (this.isTame() && itemInHand.isEmpty()) {
             boolean currentSitting = this.isCustomSitting();
             this.setCustomSitting(!currentSitting);
             this.jumping = false;
@@ -116,13 +139,13 @@ public class VitaliyPetEntity extends TamableAnimal {
 
     @Override
     public boolean isFood(ItemStack stack) {
+        // Здесь можно расширить рацион: Items.BREAD, Items.COOKED_BEEF и т.д.
         return stack.is(Items.IRON_INGOT);
     }
 
     @Override
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
-        // ✅ В 1.21.1 createTag/fromTag требуют HolderLookup.Provider
         HolderLookup.Provider registries = this.level().registryAccess();
         tag.put("PetInventory", this.inventory.createTag(registries));
         tag.put("CraftMatrix", this.craftMatrix.createTag(registries));
@@ -197,7 +220,6 @@ public class VitaliyPetEntity extends TamableAnimal {
         if (slot == EquipmentSlot.MAINHAND) {
             return new ItemStack(Items.SPYGLASS);
         }
-        // ✅ В 1.21.1 Type.ARMOR переименован в Type.HUMANOID_ARMOR
         if (slot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
             int guiIndex = 3 - slot.getIndex();
             if (guiIndex >= 0 && guiIndex < this.armorInventory.getContainerSize()) {
@@ -209,7 +231,6 @@ public class VitaliyPetEntity extends TamableAnimal {
 
     @Override
     public void setItemSlot(EquipmentSlot slot, ItemStack stack) {
-        // ✅ Аналогично: HUMANOID_ARMOR
         if (slot.getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
             int guiIndex = 3 - slot.getIndex();
             if (guiIndex >= 0 && guiIndex < this.armorInventory.getContainerSize()) {
