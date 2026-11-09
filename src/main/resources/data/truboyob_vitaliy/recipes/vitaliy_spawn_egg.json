@@ -1,0 +1,23 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "IEI",
+    "ESE",
+    "IEI"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "E": {
+      "item": "minecraft:egg"
+    },
+    "S": {
+      "item": "minecraft:spyglass"
+    }
+  },
+  "result": {
+    "item": "truboyob_vitaliy:vitaliy_spawn_egg",
+    "count": 1
+  }
+}
